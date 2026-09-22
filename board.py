@@ -739,6 +739,8 @@ class BoardHandler(BaseHTTPRequestHandler):
     """
 
     server_version = "AgentTaskBoard/1.0"
+    # Socket timeout; bounds how long shutdown can wait on a stalled client.
+    timeout = 10
     store: BoardStore
     base_url: str
     host_mode: str
@@ -1004,6 +1006,24 @@ class BoardHandler(BaseHTTPRequestHandler):
         self.wfile.write(body)
 
 
+class BoardServer(ThreadingHTTPServer):
+    """``ThreadingHTTPServer`` that shuts down quietly on Ctrl+C.
+
+    The stock server uses daemon threads, which ``server_close()`` does not
+    wait for; a request still logging to stderr during interpreter shutdown
+    then aborts Python with a fatal error.  Non-daemon threads are joined
+    instead (bounded by ``BoardHandler.timeout``).
+    """
+
+    daemon_threads = False
+
+    def handle_error(self, request: Any, client_address: Any) -> None:
+        # A client that disconnects mid-response is routine, not a server bug.
+        if isinstance(sys.exc_info()[1], (BrokenPipeError, ConnectionResetError)):
+            return
+        super().handle_error(request, client_address)
+
+
 # ---------------------------------------------------------------------------
 # Command line
 # ---------------------------------------------------------------------------
@@ -1084,7 +1104,7 @@ def main() -> None:
         (BoardHandler,),
         {"store": store, "base_url": base_url, "host_mode": args.host},
     )
-    server = ThreadingHTTPServer((bind_host, args.port), handler)
+    server = BoardServer((bind_host, args.port), handler)
     print(f"Agent Task Board: {base_url}/")
     print(f"Data directory: {store.data_dir}")
     if args.host == "all":
