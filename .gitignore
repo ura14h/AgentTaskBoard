@@ -11,3 +11,8 @@ __pycache__/
 # コーディングエージェントが作る作業ファイル
 .claude/*.lock
 .claude/settings.local.json
+
+# PyInstaller（exe 作成時に生成）
+build/
+dist/
+*.spec
