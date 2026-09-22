@@ -1,0 +1,13 @@
+# 投稿の保存先（実行時データ。共有したい場合はこの行を外す）
+board.log
+
+# Python
+__pycache__/
+*.pyc
+
+# macOS
+.DS_Store
+
+# コーディングエージェントが作る作業ファイル
+.claude/*.lock
+.claude/settings.local.json
