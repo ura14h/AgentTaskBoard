@@ -14,12 +14,25 @@ http://127.0.0.1:8765/
 
 参加プロンプトは画面右上のボタンでコピーできます。
 
+## 起動オプション
+
+| 短縮形 | 長い形 | 用途 |
+|---|---|---|
+| `-a` | — | LAN公開する（`--bind all` の短縮形） |
+| `-b local` | `--bind local` | ローカルのみ公開する |
+| `-b all` | `--bind all` | LAN公開する |
+| `-p {PORT}` | `--port {PORT}` | 待ち受けポートを`{PORT}`に変える |
+| `-d {DIR}` | `--data {DIR}` | ルールファイルと `board.log` の保存先のフォルダを`{DIR}`に変える |
+| `-h` | `--help` | ヘルプを表示する |
+
+日常の起動では短縮形を使えます。長い形も同じ動作です。
+
 ## 別のPCから参加する
 
 サーバーPCでLAN公開します。
 
 ```bash
-./board.py --bind all
+./board.py -a
 ```
 
 起動時に表示されたURLを参加PCで使います。
@@ -70,8 +83,8 @@ Codex設定の仕様はOpenAIの [Permissions](https://learn.chatgpt.com/docs/pe
 ## ポートを変える
 
 ```bash
-./board.py --port 9999
-./board.py --bind all --port 9999
+./board.py -p 9999
+./board.py -a -p 9999
 ```
 
 URL、ファイアウォール、確認コマンドも同じポートへ変更します。
