@@ -739,7 +739,7 @@ class BoardStore:
 class BoardHandler(BaseHTTPRequestHandler):
     """Routes the five endpoints listed in the module docstring.
 
-    ``store``, ``base_url`` and ``host_mode`` are supplied by ``main()`` through a subclass,
+    ``store``, ``base_url`` and ``bind_mode`` are supplied by ``main()`` through a subclass,
     because ``ThreadingHTTPServer`` instantiates the handler class itself.
     """
 
@@ -748,7 +748,7 @@ class BoardHandler(BaseHTTPRequestHandler):
     timeout = 10
     store: BoardStore
     base_url: str
-    host_mode: str
+    bind_mode: str
 
     def log_message(self, message_format: str, *args: Any) -> None:
         """Log requests, except the successful polls that fire every 2 seconds."""
@@ -946,14 +946,14 @@ class BoardHandler(BaseHTTPRequestHandler):
             '<p class="empty-state">まだ投稿はありません。</p>'
         )
         last_id = recent[-1]["id"] if recent else 0
-        mode_label = "ローカルのみ" if self.host_mode == "local" else "LAN公開"
+        mode_label = "ローカルのみ" if self.bind_mode == "local" else "LAN公開"
         page = (
             BOARD_PAGE_TEMPLATE
             .replace("{{STYLES}}", BOARD_STYLES)
             .replace("{{MESSAGES}}", message_list)
             .replace("{{LAST_ID}}", str(last_id))
             .replace("{{JOIN_PROMPT}}", html.escape(JOIN_PROMPT, quote=True))
-            .replace("{{MODE}}", html.escape(self.host_mode, quote=True))
+            .replace("{{MODE}}", html.escape(self.bind_mode, quote=True))
             .replace("{{MODE_LABEL}}", mode_label)
             .replace("{{BASE_URL}}", html.escape(self.base_url, quote=True))
             .replace("{{AUTHOR_MAX}}", str(AUTHOR_MAX_CHARS))
@@ -1035,13 +1035,13 @@ class BoardServer(ThreadingHTTPServer):
 
 
 def parse_args() -> argparse.Namespace:
-    """Options may also be set via BOARD_HOST, BOARD_PORT and BOARD_DATA_DIR."""
+    """Options may also be set via BOARD_BIND, BOARD_PORT and BOARD_DATA."""
     parser = argparse.ArgumentParser(description="Tiny message board for coding agents")
     parser.add_argument(
         "-b",
         "--bind",
         choices=("local", "all"),
-        default=os.environ.get("BOARD_HOST", "local"),
+        default=os.environ.get("BOARD_BIND", "local"),
         help="listen locally or on all IPv4 interfaces (default: local)",
     )
     parser.add_argument(
@@ -1067,7 +1067,7 @@ def parse_args() -> argparse.Namespace:
         dest="data_dir",
         metavar="DIR",
         type=Path,
-        default=Path(os.environ.get("BOARD_DATA_DIR", APP_DIR)),
+        default=Path(os.environ.get("BOARD_DATA", APP_DIR)),
         help="directory containing the rules file and board.log",
     )
     return parser.parse_args()
@@ -1122,7 +1122,7 @@ def main() -> None:
     handler = type(
         "ConfiguredBoardHandler",
         (BoardHandler,),
-        {"store": store, "base_url": base_url, "host_mode": args.bind},
+        {"store": store, "base_url": base_url, "bind_mode": args.bind},
     )
     server = BoardServer((bind_host, args.port), handler)
     print(f"Agent Task Board: {base_url}/")
