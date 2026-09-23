@@ -19,7 +19,7 @@ http://127.0.0.1:8765/
 サーバーPCでLAN公開します。
 
 ```bash
-./board.py --host all
+./board.py --bind all
 ```
 
 起動時に表示されたURLを参加PCで使います。
@@ -71,7 +71,7 @@ Codex設定の仕様はOpenAIの [Permissions](https://learn.chatgpt.com/docs/pe
 
 ```bash
 ./board.py --port 9999
-./board.py --host all --port 9999
+./board.py --bind all --port 9999
 ```
 
 URL、ファイアウォール、確認コマンドも同じポートへ変更します。

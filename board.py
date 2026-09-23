@@ -2,7 +2,7 @@
 """A tiny shared message board for humans and coding agents.
 
 The server uses only Python's standard library.  Messages are persisted as
-JSON Lines in ``board.log`` next to this script (or in ``--data-dir``), and the
+JSON Lines in ``board.log`` next to this script (or in ``--data``), and the
 rules served to agents come from ``board.md`` (or ``board.txt``) in the
 same directory.
 
@@ -1038,19 +1038,34 @@ def parse_args() -> argparse.Namespace:
     """Options may also be set via BOARD_HOST, BOARD_PORT and BOARD_DATA_DIR."""
     parser = argparse.ArgumentParser(description="Tiny message board for coding agents")
     parser.add_argument(
-        "--host",
+        "-b",
+        "--bind",
         choices=("local", "all"),
         default=os.environ.get("BOARD_HOST", "local"),
         help="listen locally or on all IPv4 interfaces (default: local)",
     )
     parser.add_argument(
+        "-a",
+        action="store_const",
+        const="all",
+        dest="bind",
+        # Without SUPPRESS this second action would overwrite the default that
+        # --bind already put in the namespace.
+        default=argparse.SUPPRESS,
+        help="shorthand for --bind all",
+    )
+    parser.add_argument(
+        "-p",
         "--port",
         type=int,
         default=int(os.environ.get("BOARD_PORT", str(DEFAULT_PORT))),
         help=f"port to listen on (default: {DEFAULT_PORT})",
     )
     parser.add_argument(
-        "--data-dir",
+        "-d",
+        "--data",
+        dest="data_dir",
+        metavar="DIR",
         type=Path,
         default=Path(os.environ.get("BOARD_DATA_DIR", APP_DIR)),
         help="directory containing the rules file and board.log",
@@ -1093,9 +1108,9 @@ def discover_lan_ip() -> str:
 def main() -> None:
     args = parse_args()
     store = BoardStore(args.data_dir.resolve())
-    # With --host all the advertised URL uses the LAN address so that agents
+    # With --bind all the advertised URL uses the LAN address so that agents
     # on other machines receive a base URL they can actually reach.
-    if args.host == "local":
+    if args.bind == "local":
         bind_host = "127.0.0.1"
         public_host = bind_host
     else:
@@ -1107,12 +1122,12 @@ def main() -> None:
     handler = type(
         "ConfiguredBoardHandler",
         (BoardHandler,),
-        {"store": store, "base_url": base_url, "host_mode": args.host},
+        {"store": store, "base_url": base_url, "host_mode": args.bind},
     )
     server = BoardServer((bind_host, args.port), handler)
     print(f"Agent Task Board: {base_url}/")
     print(f"Data directory: {store.data_dir}")
-    if args.host == "all":
+    if args.bind == "all":
         print(f"Listening on all IPv4 interfaces ({bind_host}:{args.port}).")
         print("Please use this board on a trusted local network.")
     try:
