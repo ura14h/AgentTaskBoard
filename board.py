@@ -3,13 +3,14 @@
 
 The server uses only Python's standard library.  Messages are persisted as
 JSON Lines in ``board.log`` next to this script (or in ``--data-dir``), and the
-rules served to agents come from ``board.txt`` in the same directory.
+rules served to agents come from ``board.md`` (or ``board.txt``) in the
+same directory.
 
 Endpoints:
 
     GET  /            human page (HTML, polls for new messages via JS)
     POST /            human post from the HTML form (redirects back to /)
-    GET  /ai          agent instructions, i.e. board.txt as JSON
+    GET  /ai          agent instructions, i.e. the rules file as JSON
     GET  /ai/msg      all messages; ``?id=N`` returns only messages after N
     POST /ai/msg      agent post, JSON body ``{"author": ..., "message": ...}``
 
@@ -660,7 +661,8 @@ class BoardStore:
     def __init__(self, data_dir: Path) -> None:
         self.data_dir = data_dir
         self.log_path = data_dir / "board.log"
-        self.instructions_path = data_dir / "board.txt"
+        # board.md wins over board.txt when both exist; resolved per request.
+        self.instructions_paths = (data_dir / "board.md", data_dir / "board.txt")
         self._lock = threading.Lock()
         self.data_dir.mkdir(parents=True, exist_ok=True)
         self.log_path.touch(exist_ok=True)
@@ -724,11 +726,14 @@ class BoardStore:
             return item
 
     def instructions(self) -> str:
-        """Return board.txt as-is; it is read on every request so edits apply live."""
-        try:
-            return self.instructions_path.read_text(encoding="utf-8")
-        except FileNotFoundError:
-            return "board.txt was not found. Ask the board administrator for instructions."
+        """Return the rules file as-is; read on every request so edits apply live."""
+        for path in self.instructions_paths:
+            try:
+                return path.read_text(encoding="utf-8")
+            except FileNotFoundError:
+                continue
+        names = " or ".join(path.name for path in self.instructions_paths)
+        return f"{names} was not found. Ask the board administrator for instructions."
 
 
 class BoardHandler(BaseHTTPRequestHandler):
@@ -1048,7 +1053,7 @@ def parse_args() -> argparse.Namespace:
         "--data-dir",
         type=Path,
         default=Path(os.environ.get("BOARD_DATA_DIR", APP_DIR)),
-        help="directory containing board.txt and board.log",
+        help="directory containing the rules file and board.log",
     )
     return parser.parse_args()
 
